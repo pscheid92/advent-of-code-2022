@@ -5,7 +5,7 @@ use std::{
 };
 
 pub fn read(day: usize) -> Result<Vec<String>, io::Error> {
-    let path = dbg!(format!("inputs/day{:02}.txt", day));
+    let path = format!("inputs/day{:02}.txt", day);
     let file = File::open(path)?;
     let file = BufReader::new(file);
     file.lines().collect()
@@ -32,8 +32,6 @@ pub fn convert<T: FromStr>(lines: Vec<String>) -> Result<Vec<T>, <T as FromStr>:
     lines.iter().map(|l| l.parse()).collect()
 }
 
-pub fn convert_pack<T: FromStr>(
-    packs: Vec<Vec<String>>,
-) -> Result<Vec<Vec<T>>, <T as FromStr>::Err> {
+pub fn convert_pack<T: FromStr>(packs: Vec<Vec<String>>) -> Result<Vec<Vec<T>>, <T as FromStr>::Err> {
     packs.into_iter().map(convert::<T>).collect()
 }
