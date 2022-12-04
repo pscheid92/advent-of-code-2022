@@ -3,13 +3,15 @@ extern crate aoc2022;
 use aoc2022::*;
 use std::str::FromStr;
 
+use anyhow::{Result, Context, anyhow};
 use RoundResult::{Draw, Lost, Won};
 use Shape::{Paper, Rock, Scissors};
 
-fn main() {
-    let lines = read(2).unwrap();
-    let game = Game::try_from(lines).unwrap();
+fn main() -> Result<()> {
+    let lines = read(2).context("error reading input")?;
+    let game = Game::try_from(lines).context("error parsing game")?;
     println!("score: {}", game.score());
+    Ok(())
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -30,14 +32,14 @@ impl Shape {
 }
 
 impl FromStr for Shape {
-    type Err = &'static str;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "A" => Ok(Rock),
             "B" => Ok(Paper),
             "C" => Ok(Scissors),
-            _ => Err("error"),
+            _ => Err(anyhow!("error")),
         }
     }
 }
@@ -60,14 +62,14 @@ impl RoundResult {
 }
 
 impl FromStr for RoundResult {
-    type Err = &'static str;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "X" => Ok(Lost),
             "Y" => Ok(Draw),
             "Z" => Ok(Won),
-            _ => Err("error"),
+            _ => Err(anyhow!("error")),
         }
     }
 }
@@ -105,19 +107,19 @@ impl Round {
 }
 
 impl FromStr for Round {
-    type Err = &'static str;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut tokens = s.split_ascii_whitespace();
 
         let opponent = match tokens.next() {
             Some(v) => v,
-            None => return Err(""),
+            None => return Err(anyhow!("error")),
         };
 
         let result = match tokens.next() {
             Some(v) => v,
-            None => return Err(""),
+            None => return Err(anyhow!("error")),
         };
 
         let opponent = Shape::from_str(opponent)?;
@@ -138,7 +140,7 @@ impl Game {
 }
 
 impl TryFrom<Vec<String>> for Game {
-    type Error = &'static str;
+    type Error = anyhow::Error;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         let rounds = value
@@ -158,9 +160,9 @@ mod tests {
 
     #[test]
     fn read_shape_from_string() {
-        assert_eq!(Shape::from_str("A"), Ok(Rock));
-        assert_eq!(Shape::from_str("B"), Ok(Paper));
-        assert_eq!(Shape::from_str("C"), Ok(Scissors));
+        assert_eq!(Shape::from_str("A").unwrap(), Rock);
+        assert_eq!(Shape::from_str("B").unwrap(), Paper);
+        assert_eq!(Shape::from_str("C").unwrap(), Scissors);
         assert!(Shape::from_str("").is_err());
         assert!(Shape::from_str("a").is_err());
         assert!(Shape::from_str("G").is_err());
@@ -169,9 +171,9 @@ mod tests {
 
     #[test]
     fn read_result_from_string() {
-        assert_eq!(RoundResult::from_str("X"), Ok(Lost));
-        assert_eq!(RoundResult::from_str("Y"), Ok(Draw));
-        assert_eq!(RoundResult::from_str("Z"), Ok(Won));
+        assert_eq!(RoundResult::from_str("X").unwrap(), Lost);
+        assert_eq!(RoundResult::from_str("Y").unwrap(), Draw);
+        assert_eq!(RoundResult::from_str("Z").unwrap(), Won);
         assert!(Shape::from_str("").is_err());
         assert!(Shape::from_str("x").is_err());
         assert!(Shape::from_str("G").is_err());

@@ -1,23 +1,29 @@
 extern crate aoc2022;
 extern crate core;
 
+use anyhow::{Result, Context, anyhow};
 use std::collections::HashSet;
 use aoc2022::*;
 
-fn main() {
+fn main() -> Result<()> {
     let rucksacks = read(3)
-        .unwrap()
+        .context("error reading input")?
         .iter()
         .map(|l| Rucksack::new(l))
         .collect::<Vec<_>>();
 
     let result: u32 = rucksacks
         .chunks_exact(3)
-        .map(|x| x.try_into().unwrap())
+        .map(|x| x.try_into())
+        .collect::<Result<Vec<&[Rucksack; 3]>, _>>()?
+        .iter()
         .map(|x| process_group(x))
+        .collect::<Result<Vec<_>, _>>()?
+        .iter()
         .sum();
 
     println!("solution: {}", result);
+    Ok(())
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -31,11 +37,11 @@ impl Rucksack {
     }
 }
 
-fn get_priority(c: char) -> Result<u32, &'static str> {
+fn get_priority(c: char) -> Result<u32> {
     match c {
         'a'..='z' => Ok((c as u32) - ('a' as u32) + 1),
         'A'..='Z' => Ok((c as u32) - ('A' as u32) + 27),
-        _ => Err(""),
+        _ => Err(anyhow!("invalid rucksack item")),
     }
 }
 
@@ -58,10 +64,10 @@ fn identify_badge(rucksacks: &[Rucksack; 3]) -> Option<char> {
     result.iter().next().cloned()
 }
 
-fn process_group(group: &[Rucksack; 3]) -> u32 {
-    let badge = identify_badge(group).unwrap();
-    let priority = get_priority(badge).unwrap();
-    priority
+fn process_group(group: &[Rucksack; 3]) -> Result<u32> {
+    let badge = identify_badge(group).context("no badge")?;
+    let priority = get_priority(badge).context("invalid badge")?;
+    Ok(priority)
 }
 
 #[cfg(test)]
@@ -70,12 +76,12 @@ mod tests {
 
     #[test]
     fn can_calculate_the_priority() {
-        assert_eq!(get_priority('p'), Ok(16));
-        assert_eq!(get_priority('L'), Ok(38));
-        assert_eq!(get_priority('P'), Ok(42));
-        assert_eq!(get_priority('v'), Ok(22));
-        assert_eq!(get_priority('t'), Ok(20));
-        assert_eq!(get_priority('s'), Ok(19));
+        assert_eq!(get_priority('p').unwrap(), 16);
+        assert_eq!(get_priority('L').unwrap(), 38);
+        assert_eq!(get_priority('P').unwrap(), 42);
+        assert_eq!(get_priority('v').unwrap(), 22);
+        assert_eq!(get_priority('t').unwrap(), 20);
+        assert_eq!(get_priority('s').unwrap(), 19);
         assert!(get_priority('0').is_err());
     }
 
@@ -111,7 +117,7 @@ mod tests {
             Rucksack::new("CrZsJsPPZsGzwwsLwLmpwMDw"),
         ];
 
-        assert_eq!(process_group(&group1), 18);
-        assert_eq!(process_group(&group2), 52);
+        assert_eq!(process_group(&group1).unwrap(), 18);
+        assert_eq!(process_group(&group2).unwrap(), 52);
     }
 }

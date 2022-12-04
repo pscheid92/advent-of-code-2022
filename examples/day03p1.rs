@@ -1,19 +1,21 @@
 extern crate aoc2022;
 
+use anyhow::{Result, Context, anyhow};
 use std::collections::HashSet;
 use std::str::FromStr;
 use aoc2022::*;
 
-fn main() {
-    let lines = read(3).unwrap();
+fn main() -> Result<()> {
+    let lines = read(3).context("error reading input")?;
     let rucksacks = lines
         .iter()
         .map(|l| Rucksack::from_str(l))
         .collect::<Result<Vec<_>, _>>()
-        .unwrap();
+        .context("error parsing rucksacks")?;
 
-    let result = process_multiple_rucksacks(&rucksacks).unwrap();
+    let result = process_multiple_rucksacks(&rucksacks).context("error processing rucksacks")?;
     println!("solution: {}", result);
+    Ok(())
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -32,13 +34,13 @@ impl Rucksack {
 }
 
 impl FromStr for Rucksack {
-    type Err = &'static str;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let n = s.len();
 
         if (n == 0) || (n % 2 != 0) {
-            return Err("");
+            return Err(anyhow!("zero or uneven not allowed"));
         }
 
         let (first, second) = s.split_at(n / 2);
@@ -60,18 +62,19 @@ fn find_error(rucksack: &Rucksack) -> char {
         }
     }
 
+    // There always is a duplicate!
     unreachable!()
 }
 
-fn get_priority(c: char) -> Result<u32, &'static str> {
+fn get_priority(c: char) -> Result<u32> {
     match c {
         'a'..='z' => Ok((c as u32) - ('a' as u32) + 1),
         'A'..='Z' => Ok((c as u32) - ('A' as u32) + 27),
-        _ => Err(""),
+        _ => Err(anyhow!("invalid rucksack item")),
     }
 }
 
-fn process_multiple_rucksacks(rucksacks: &Vec<Rucksack>) -> Result<u32, &'static str> {
+fn process_multiple_rucksacks(rucksacks: &Vec<Rucksack>) -> Result<u32> {
     let priority = rucksacks
         .iter()
         .map(|r| find_error(r))
@@ -91,11 +94,11 @@ mod tests {
     fn can_read_in_rucksack_description() {
         let case1 = "vJrwpWtwJgWrhcsFMMfFFhFp";
         let expect1 = Rucksack { first: "vJrwpWtwJgWr".to_string(), second: "hcsFMMfFFhFp".to_string() };
-        assert_eq!(Rucksack::from_str(case1), Ok(expect1));
+        assert_eq!(Rucksack::from_str(case1).unwrap(), expect1);
 
         let case2 = "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL";
         let expect2 = Rucksack { first: "jqHRNqRjqzjGDLGL".to_string(), second: "rsFMfFZSrLrFZsSL".to_string() };
-        assert_eq!(Rucksack::from_str(case2), Ok(expect2));
+        assert_eq!(Rucksack::from_str(case2).unwrap(), expect2);
 
         assert!(Rucksack::from_str("").is_err());
         assert!(Rucksack::from_str("a").is_err());
@@ -125,12 +128,12 @@ mod tests {
 
     #[test]
     fn can_calculate_the_priority() {
-        assert_eq!(get_priority('p'), Ok(16));
-        assert_eq!(get_priority('L'), Ok(38));
-        assert_eq!(get_priority('P'), Ok(42));
-        assert_eq!(get_priority('v'), Ok(22));
-        assert_eq!(get_priority('t'), Ok(20));
-        assert_eq!(get_priority('s'), Ok(19));
+        assert_eq!(get_priority('p').unwrap(), 16);
+        assert_eq!(get_priority('L').unwrap(), 38);
+        assert_eq!(get_priority('P').unwrap(), 42);
+        assert_eq!(get_priority('v').unwrap(), 22);
+        assert_eq!(get_priority('t').unwrap(), 20);
+        assert_eq!(get_priority('s').unwrap(), 19);
         assert!(get_priority('0').is_err());
     }
 
@@ -142,6 +145,6 @@ mod tests {
             .collect::<Vec<_>>();
 
         let priority = process_multiple_rucksacks(&rucksacks);
-        assert_eq!(priority, Ok(157));
+        assert_eq!(priority.unwrap(), 157);
     }
 }

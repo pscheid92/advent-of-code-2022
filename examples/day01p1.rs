@@ -1,13 +1,15 @@
 extern crate aoc2022;
 use aoc2022::*;
 
-fn main() {
-    let lines = read(1).expect("error reading input");
-    let packs = convert_pack::<i32>(pack(lines)).expect("error parsing numbers");
+use anyhow::{Context, Result};
 
+fn main() -> Result<()> {
+    let lines = read(1).context("error reading input")?;
+    let packs = convert_pack::<i32>(pack(lines)).context("error parsing numbers")?;
     let solution = solve(&packs);
 
     println!("solution: {}", solution);
+    Ok(())
 }
 
 fn solve(packs: &Vec<Vec<i32>>) -> i32 {
