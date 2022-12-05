@@ -1,8 +1,14 @@
 extern crate aoc2022;
 
-use anyhow::{Result, Context, anyhow};
 use std::collections::HashSet;
 use std::str::FromStr;
+
+use anyhow::{anyhow, Context, Result};
+use nom::character::complete::alpha1;
+use nom::combinator::{eof, map_res};
+use nom::IResult;
+use nom::sequence::terminated;
+
 use aoc2022::*;
 
 fn main() -> Result<()> {
@@ -31,21 +37,19 @@ impl Rucksack {
             second: second.to_string(),
         }
     }
-}
 
-impl FromStr for Rucksack {
-    type Err = anyhow::Error;
+    fn parse(s: &str) -> IResult<&str, Rucksack> {
+        let parser = terminated(alpha1, eof);
+        let mut parser = map_res(parser, |l: &str| {
+            if l.len() % 2 != 0 {
+                return Err(anyhow!("uneven characters not allowed"));
+            }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let n = s.len();
+            let (first, second) = s.split_at(l.len() / 2);
+            Ok(Rucksack::new(first, second))
+        });
 
-        if (n == 0) || (n % 2 != 0) {
-            return Err(anyhow!("zero or uneven not allowed"));
-        }
-
-        let (first, second) = s.split_at(n / 2);
-        let rucksack = Rucksack::new(first, second);
-        Ok(rucksack)
+        parser(s)
     }
 }
 
@@ -85,6 +89,8 @@ fn process_multiple_rucksacks(rucksacks: &Vec<Rucksack>) -> Result<u32> {
 
     Ok(priority)
 }
+
+impl_from_str!(Rucksack);
 
 #[cfg(test)]
 mod tests {

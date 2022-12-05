@@ -1,9 +1,14 @@
 extern crate aoc2022;
 
-use aoc2022::*;
 use std::str::FromStr;
 
-use anyhow::{Result, Context, anyhow};
+use anyhow::{anyhow, Context, Result};
+use nom::IResult;
+use nom::character::complete::{char, one_of};
+use nom::combinator::{eof, map, map_res};
+use nom::sequence::{separated_pair, terminated};
+
+use aoc2022::*;
 use RoundResult::{Draw, Lost, Won};
 use Shape::{Paper, Rock, Scissors};
 
@@ -29,20 +34,19 @@ impl Shape {
             Scissors => 3,
         }
     }
-}
 
-impl FromStr for Shape {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Rock),
-            "B" => Ok(Paper),
-            "C" => Ok(Scissors),
+    fn parse(s: &str) -> IResult<&str, Shape> {
+        let mut parser = map_res(terminated(one_of("ABCXYZ"), eof), |c: char| match c {
+            'A' => Ok(Rock),
+            'B' => Ok(Paper),
+            'C' => Ok(Scissors),
             _ => Err(anyhow!("error")),
-        }
+        });
+
+        parser(s)
     }
 }
+
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum RoundResult {
@@ -59,18 +63,16 @@ impl RoundResult {
             Won => 6,
         }
     }
-}
 
-impl FromStr for RoundResult {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "X" => Ok(Lost),
-            "Y" => Ok(Draw),
-            "Z" => Ok(Won),
+    fn parse(s: &str) -> IResult<&str, RoundResult> {
+        let mut parser = map_res(terminated(one_of("ABCXYZ"), eof), |c: char| match c {
+            'X' => Ok(Lost),
+            'Y' => Ok(Draw),
+            'Z' => Ok(Won),
             _ => Err(anyhow!("error")),
-        }
+        });
+
+        parser(s)
     }
 }
 
@@ -97,35 +99,18 @@ impl Round {
             (Scissors, Lost) => Paper,
             (Scissors, Draw) => Scissors,
             (Scissors, Won) => Rock,
-        } 
+        }
     }
 
     fn score(&self) -> u32 {
         let me = self.derive_my_move();
         me.score() + self.result.score()
     }
-}
 
-impl FromStr for Round {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut tokens = s.split_ascii_whitespace();
-
-        let opponent = match tokens.next() {
-            Some(v) => v,
-            None => return Err(anyhow!("error")),
-        };
-
-        let result = match tokens.next() {
-            Some(v) => v,
-            None => return Err(anyhow!("error")),
-        };
-
-        let opponent = Shape::from_str(opponent)?;
-        let result = RoundResult::from_str(result)?;
-
-        Ok(Round::new(opponent, result))
+    fn parse(s: &str) -> IResult<&str, Round> {
+        let parser = separated_pair(Shape::parse, char(' '), RoundResult::parse);
+        let mut parser = map(parser, |(o, r)| Round::new(o, r));
+        parser(s)
     }
 }
 
@@ -152,11 +137,16 @@ impl TryFrom<Vec<String>> for Game {
     }
 }
 
+impl_from_str!(Shape);
+impl_from_str!(RoundResult);
+impl_from_str!(Round);
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use RoundResult::{Draw, Lost, Won};
     use Shape::{Paper, Rock, Scissors};
+
+    use super::*;
 
     #[test]
     fn read_shape_from_string() {
@@ -177,7 +167,7 @@ mod tests {
         assert!(Shape::from_str("").is_err());
         assert!(Shape::from_str("x").is_err());
         assert!(Shape::from_str("G").is_err());
-        assert!(Shape::from_str("XA").is_err()); 
+        assert!(Shape::from_str("XA").is_err());
     }
 
     #[test]
@@ -189,7 +179,7 @@ mod tests {
         assert_eq!(Round::new(Paper, Lost).derive_my_move(), Rock);
         assert_eq!(Round::new(Paper, Draw).derive_my_move(), Paper);
         assert_eq!(Round::new(Paper, Won).derive_my_move(), Scissors);
-        
+
         assert_eq!(Round::new(Scissors, Lost).derive_my_move(), Paper);
         assert_eq!(Round::new(Scissors, Draw).derive_my_move(), Scissors);
         assert_eq!(Round::new(Scissors, Won).derive_my_move(), Rock);

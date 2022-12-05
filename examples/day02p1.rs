@@ -1,9 +1,15 @@
 extern crate aoc2022;
+extern crate core;
 
-use aoc2022::*;
 use std::str::FromStr;
 
-use anyhow::{Result, Context, anyhow};
+use anyhow::{anyhow, Context, Result};
+use nom::IResult;
+use nom::character::complete::{char, one_of};
+use nom::combinator::{eof, map, map_res};
+use nom::sequence::{separated_pair, terminated};
+
+use aoc2022::*;
 use RoundResult::{Draw, Lost, Won};
 use Shape::{Paper, Rock, Scissors};
 
@@ -29,20 +35,19 @@ impl Shape {
             Scissors => 3,
         }
     }
-}
 
-impl FromStr for Shape {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" | "X" => Ok(Rock),
-            "B" | "Y" => Ok(Paper),
-            "C" | "Z" => Ok(Scissors),
+    fn parse(s: &str) -> IResult<&str, Shape> {
+        let mut parser = map_res(terminated(one_of("ABCXYZ"), eof), |c: char| match c {
+            'A' | 'X' => Ok(Rock),
+            'B' | 'Y' => Ok(Paper),
+            'C' | 'Z' => Ok(Scissors),
             _ => Err(anyhow!("error")),
-        }
+        });
+
+        parser(s)
     }
 }
+
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum RoundResult {
@@ -91,28 +96,11 @@ impl Round {
         let result = self.play();
         self.me.score() + result.score()
     }
-}
 
-impl FromStr for Round {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut tokens = s.split_ascii_whitespace();
-
-        let opponent = match tokens.next() {
-            Some(v) => v,
-            None => return Err(anyhow!("error")),
-        };
-
-        let me = match tokens.next() {
-            Some(v) => v,
-            None => return Err(anyhow!("error")),
-        };
-
-        let opponent = Shape::from_str(opponent)?;
-        let me = Shape::from_str(me)?;
-
-        Ok(Round::new(me, opponent))
+    fn parse(s: &str) -> IResult<&str, Round> {
+        let parser = separated_pair(Shape::parse, char(' '), Shape::parse);
+        let mut parser = map(parser, |(o, m)| Round::new(m, o));
+        parser(s)
     }
 }
 
@@ -139,11 +127,15 @@ impl TryFrom<Vec<String>> for Game {
     }
 }
 
+impl_from_str!(Shape);
+impl_from_str!(Round);
+
 #[cfg(test)]
 mod tests {
-    use super::*;
     use RoundResult::{Draw, Lost, Won};
     use Shape::{Paper, Rock, Scissors};
+
+    use super::*;
 
     #[test]
     fn read_shape_from_string() {
