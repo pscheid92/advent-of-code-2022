@@ -25,6 +25,10 @@ pub fn pack(lines: Vec<String>) -> Vec<Vec<String>> {
         pack = Vec::new();
     }
 
+    if !pack.is_empty() {
+        result.push(pack);
+    }
+
     result
 }
 
